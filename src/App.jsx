@@ -1,92 +1,102 @@
-import React, { useState, useEffect } from "react";
+import { useState } from "react";
+import abi from "./abi.json";
 import { ethers } from "ethers";
-
-const contractAddress = "0x2ef1F2604136C78380a5418b287E1d877595306b";
-
+import "./App.css";
 
 function App() {
-  const [provider, setProvider] = useState(null);
-  const [signer, setSigner] = useState(null);
-  const [contract, setContract] = useState(null);
-  const [balance, setBalance] = useState("0");
-  const [amount, setAmount] = useState("");
+  const [depositAmount, setDepositAmount] = useState("");
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [balance, setBalance] = useState("");
+  const contractAddress = "0x2ef1F2604136C78380a5418b287E1d877595306b";
 
-  useEffect(() => {
-    const initializeEthers = async () => {
-      if (window.ethereum) {
-        const _provider = new ethers.BrowserProvider(window.ethereum);
-        const _signer = await _provider.getSigner();
-        const _contract = new ethers.Contract(contractAddress, contractABI, _signer);
+  async function requestAccounts() {
+    await window.ethereum.request({ method: "eth_requestAccounts" });
+  }
 
-        setProvider(_provider);
-        setSigner(_signer);
-        setContract(_contract);
-      } else {
-        alert("Please install MetaMask to use this application.");
-      }
-    };
-    initializeEthers();
-  }, []);
-
-  const getBalance = async () => {
-    if (contract) {
-      const _balance = await contract.getBalance();
-      setBalance(ethers.formatEther(_balance));
-    }
-  };
-
-  const deposit = async () => {
-    if (contract && amount) {
+  async function depositFunds() {
+    if (typeof window.ethereum !== "undefined") {
+      await requestAccounts();
       try {
-        const tx = await contract.deposit(ethers.parseEther(amount), {
-          value: ethers.parseEther(amount),
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const contract = new ethers.Contract(contractAddress, abi, signer);
+        const tx = await contract.deposit({
+          value: ethers.parseEther(depositAmount),
         });
         await tx.wait();
-        alert("Deposit successful!");
-        getBalance();
+        console.log("Deposit successful");
       } catch (error) {
-        console.error(error);
-        alert("Deposit failed!");
+        console.error("Deposit failed:", error);
       }
+    } else {
+      console.error("Ethereum wallet is not detected");
     }
-  };
+  }
 
-  const withdraw = async () => {
-    if (contract && amount) {
+  async function withdrawFunds() {
+    if (typeof window.ethereum !== "undefined") {
+      await requestAccounts();
       try {
-        const tx = await contract.withdraw(ethers.parseEther(amount));
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const contract = new ethers.Contract(contractAddress, abi, signer);
+        const tx = await contract.withdraw(ethers.parseEther(withdrawAmount));
         await tx.wait();
-        alert("Withdrawal successful!");
-        getBalance();
+        console.log("Withdrawal successful");
       } catch (error) {
-        console.error(error);
-        if (error.code === "CALL_EXCEPTION") {
-          alert("Insufficient balance for withdrawal.");
-        } else {
-          alert("Withdrawal failed!");
-        }
+        console.error("Withdrawal failed:", error);
       }
+    } else {
+      console.error("Ethereum wallet is not detected");
     }
-  };
+  }
+
+  async function getContractBalance() {
+    if (typeof window.ethereum !== "undefined") {
+      try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const contract = new ethers.Contract(contractAddress, abi, provider);
+        const balance = await contract.getBalance();
+        setBalance(ethers.formatEther(balance));
+        console.log("Balance retrieved:", ethers.formatEther(balance));
+      } catch (error) {
+        console.error("Failed to retrieve balance:", error);
+      }
+    } else {
+      console.error("Ethereum wallet is not detected");
+    }
+  }
 
   return (
-    <div className="App">
-      <h1>Assessment DApp</h1>
+    <>
       <div>
-        <button onClick={getBalance}>Get Balance</button>
-        <p>Contract Balance: {balance} ETH</p>
+        <h1>Smart Contract Interaction</h1>
+        <div>
+          <input
+            type="text"
+            placeholder="Enter deposit amount (ETH)"
+            value={depositAmount}
+            onChange={(e) => setDepositAmount(e.target.value)}
+          />
+          <button onClick={depositFunds}>Deposit</button>
+        </div>
+
+        <div>
+          <input
+            type="text"
+            placeholder="Enter withdrawal amount (ETH)"
+            value={withdrawAmount}
+            onChange={(e) => setWithdrawAmount(e.target.value)}
+          />
+          <button onClick={withdrawFunds}>Withdraw</button>
+        </div>
+
+        <div>
+          <button onClick={getContractBalance}>Get Balance</button>
+          <p>Contract Balance: {balance} ETH</p>
+        </div>
       </div>
-      <div>
-        <input
-          type="number"
-          placeholder="Enter amount in ETH"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-        />
-        <button onClick={deposit}>Deposit</button>
-        <button onClick={withdraw}>Withdraw</button>
-      </div>
-    </div>
+    </>
   );
 }
 
