@@ -1,134 +1,64 @@
-import React, { useState, useEffect } from "react";
-import { ethers } from "ethers";
+import React, { useState } from "react";
 import abi from "./abi.json";
+import { ethers } from "ethers";
 
 const App = () => {
-  const contractAddress = "0x2ef1F2604136C78380a5418b287E1d877595306b"; 
-  const contractABI = abi; 
+  const [userInput, setUserInput] = useState("");
+  const [retrievedMessage, setRetrievedMessage] = useState("");
+  const contractAddress = "0x2ef1F2604136C78380a5418b287E1d877595306b";
 
-  const [balance, setBalance] = useState(0);
-  const [amount, setAmount] = useState("");
-  const [message, setMessage] = useState("");
-
-  // Get the balance from the contract
-  const getBalance = async () => {
+  async function requestAccounts() {
+    await window.ethereum.request({ method: "eth_requestAccounts" });
+  }
+  async function setUserMessage() {
     if (typeof window.ethereum !== "undefined") {
-      try {
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const contract = new ethers.Contract(contractAddress, contractABI, provider);
-        const balance = await contract.getBalance();
-        setBalance(balance.toString());
-      } catch (error) {
-        console.error("Error fetching balance:", error);
-      }
-    } else {
-      alert("Please install MetaMask!");
-    }
-  };
+      await requestAccounts();
 
-  // Deposit funds into the contract
-  const deposit = async () => {
-    if (typeof window.ethereum !== "undefined") {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const contract = new ethers.Contract(contractAddress, abi, signer);
       try {
-        await window.ethereum.request({ method: "eth_requestAccounts" });
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer = provider.getSigner();
-        const contract = new ethers.Contract(contractAddress, contractABI, signer);
-
-        const tx = await contract.deposit(amount, { value: ethers.parseEther(amount) }); // Send the amount in ETH
-        await tx.wait();
-        setMessage(`Deposited ${amount} ETH successfully!`);
-        getBalance(); // Update the balance
+        const tx = await contract.setMessage(userInput);
+        const receipt = tx.wait();
+        console.log("  Transaction successful", receipt);
       } catch (error) {
-        console.error("Error depositing funds:", error);
-        setMessage("Transaction failed!");
+        console.log("fail  transaction", error);
       }
     }
-  };
-
-  // Withdraw funds from the contract
-  const withdraw = async () => {
+  }
+  async function getUserMessage() {
     if (typeof window.ethereum !== "undefined") {
-      try {
-        await window.ethereum.request({ method: "eth_requestAccounts" });
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer = provider.getSigner();
-        const contract = new ethers.Contract(contractAddress, contractABI, signer);
+      await requestAccounts();
 
-        const tx = await contract.withdraw(ethers.parseEther(amount)); // Withdraw the specified amount
-        await tx.wait();
-        setMessage(`Withdrew ${amount} ETH successfully!`);
-        getBalance(); // Update the balance
+      const provider = new ethers.BrowserProvider(window.ethereum);
+
+      const contract = new ethers.Contract(contractAddress, abi, provider);
+      try {
+        const tx = await contract.getMessage();
+        setRetrievedMessage(tx);
+        console.log("  Transaction successful", tx);
       } catch (error) {
-        console.error("Error withdrawing funds:", error);
-        if (error.data && error.data.message.includes("InsufficientBalance")) {
-          setMessage("Insufficient balance to withdraw!");
-        } else {
-          setMessage("Transaction failed!");
-        }
+        console.log("fail  transaction", error);
       }
     }
-  };
-
-  // Fetch balance on page load
-  useEffect(() => {
-    getBalance();
-  }, []);
+  }
 
   return (
-    <div style={{ padding: "20px", fontFamily: "Arial, sans-serif" }}>
-      <h1>Assessment Contract</h1>
-      <p><strong>Current Balance:</strong> {ethers.formatEther(balance)} ETH</p>
-
+    <div>
       <input
-        type="number"
-        value={amount}
-        onChange={(e) => setAmount(e.target.value)}
-        placeholder="Enter amount in ETH"
-        style={{
-          padding: "10px",
-          margin: "10px 0",
-          width: "200px",
-          borderRadius: "5px",
-          border: "1px solid #ccc",
-        }}
+        typeof="text"
+        placeholder="set your message"
+        value={userInput}
+        onChange={(e) => setUserInput(e.target.value)}
       />
-
-      <div>
-        <button
-          onClick={deposit}
-          style={{
-            padding: "10px 20px",
-            margin: "10px",
-            backgroundColor: "#4CAF50",
-            color: "white",
-            border: "none",
-            borderRadius: "5px",
-            cursor: "pointer",
-          }}
-        >
-          Deposit
-        </button>
-
-        <button
-          onClick={withdraw}
-          style={{
-            padding: "10px 20px",
-            margin: "10px",
-            backgroundColor: "#F44336",
-            color: "white",
-            border: "none",
-            borderRadius: "5px",
-            cursor: "pointer",
-          }}
-        >
-          Withdraw
-        </button>
-      </div>
-
-      <p style={{ color: "blue" }}>{message}</p>
+      <button onClick={setUserMessage}>set message</button>
+      <button onClick={getUserMessage}>Get message</button>
+      <p>
+        <strong>Retrieved Message:</strong> {retrievedMessage}
+      </p>
     </div>
   );
 };
 
 export default App;
+// 0xD4Fc541236927E2EAf8F27606bD7309C1Fc2cbee
