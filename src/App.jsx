@@ -20,9 +20,7 @@ function App() {
         const provider = new ethers.BrowserProvider(window.ethereum);
         const signer = await provider.getSigner();
         const contract = new ethers.Contract(contractAddress, abi, signer);
-        const tx = await contract.deposit({
-          value: ethers.parseEther(depositAmount),
-        });
+        const tx = await contract.deposit( depositAmount);
         await tx.wait();
         console.log("Deposit successful");
       } catch (error) {
@@ -40,7 +38,7 @@ function App() {
         const provider = new ethers.BrowserProvider(window.ethereum);
         const signer = await provider.getSigner();
         const contract = new ethers.Contract(contractAddress, abi, signer);
-        const tx = await contract.withdraw(ethers.parseEther(withdrawAmount));
+        const tx = await contract.withdraw(withdrawAmount);
         await tx.wait();
         console.log("Withdrawal successful");
       } catch (error) {
