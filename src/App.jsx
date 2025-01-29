@@ -70,7 +70,7 @@ export default function TaskDApp() {
 
   return (
     <div className="max-w-lg mx-auto p-4">
-      <h1 className="text-2xl font-bold text-center mb-4">Task Manager DApp</h1>
+      <h1 className="text-2xl font-bold text-center mb-4">OGAZBOIZ TASK MANAGER DAPP</h1>
       {!signer ? (
         <button onClick={connectWallet} className="w-full bg-blue-500 text-white py-2 px-4 rounded">Connect Wallet</button>
       ) : (
