@@ -1,12 +1,8 @@
 import { useState, useEffect } from "react";
 import { ethers } from "ethers";
-// import { toast } from "react-toastify";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import ABI from "./abi.json"
-const CONTRACT_ADDRESS = "0x0f764437ffBE1fcd0d0d276a164610422710B482";
+import ABI from "./abi.json";
 
-toast.configure();
+const CONTRACT_ADDRESS = "0x0f764437ffBE1fcd0d0d276a164610422710B482";
 
 export default function TaskDApp() {
   const [provider, setProvider] = useState(null);
@@ -24,38 +20,31 @@ export default function TaskDApp() {
   }, []);
 
   const connectWallet = async () => {
-    if (!provider) return toast.error("Please install MetaMask");
-    try {
-      const web3Signer = await provider.getSigner();
-      setSigner(web3Signer);
-      setContract(new ethers.Contract(CONTRACT_ADDRESS, ABI, web3Signer));
-      toast.success("Wallet connected successfully");
-    } catch (error) {
-      toast.error("Failed to connect wallet");
-    }
+    if (!provider) return alert("Please install MetaMask");
+    const web3Signer = await provider.getSigner();
+    setSigner(web3Signer);
+    setContract(new ethers.Contract(CONTRACT_ADDRESS, ABI, web3Signer));
   };
 
   const addTask = async () => {
-    if (!contract) return toast.error("Connect your wallet first");
+    if (!contract) return alert("Connect your wallet first");
     try {
       const tx = await contract.addTask(taskText, taskTitle, false);
       await tx.wait();
       fetchTasks();
-      toast.success("Task added successfully");
     } catch (error) {
-      toast.error("Failed to add task");
+      console.error(error);
     }
   };
 
   const deleteTask = async (taskId) => {
-    if (!contract) return toast.error("Connect your wallet first");
+    if (!contract) return alert("Connect your wallet first");
     try {
       const tx = await contract.deleteTask(taskId);
       await tx.wait();
       fetchTasks();
-      toast.success("Task deleted successfully");
     } catch (error) {
-      toast.error("Failed to delete task");
+      console.error(error);
     }
   };
 
@@ -65,7 +54,7 @@ export default function TaskDApp() {
       const myTasks = await contract.getMyTask();
       setTasks(myTasks);
     } catch (error) {
-      toast.error("Failed to load tasks");
+      console.error(error);
     }
   };
 
@@ -93,7 +82,6 @@ export default function TaskDApp() {
           </div>
         </div>
       )}
-      <ToastContainer />
     </div>
   );
 }
