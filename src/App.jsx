@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import ABI from "./abi.json";
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const CONTRACT_ADDRESS = "0x0f764437ffBE1fcd0d0d276a164610422710B482";
 
@@ -20,31 +22,38 @@ export default function TaskDApp() {
   }, []);
 
   const connectWallet = async () => {
-    if (!provider) return alert("Please install MetaMask");
+    if (!provider) {
+      return toast.error("Please install MetaMask");
+    }
     const web3Signer = await provider.getSigner();
     setSigner(web3Signer);
     setContract(new ethers.Contract(CONTRACT_ADDRESS, ABI, web3Signer));
+    toast.success("Wallet connected successfully");
   };
 
   const addTask = async () => {
-    if (!contract) return alert("Connect your wallet first");
+    if (!contract) return toast.error("Connect your wallet first");
     try {
       const tx = await contract.addTask(taskText, taskTitle, false);
       await tx.wait();
       fetchTasks();
+      toast.success("Task added successfully!");
     } catch (error) {
       console.error(error);
+      toast.error("Error adding task");
     }
   };
 
   const deleteTask = async (taskId) => {
-    if (!contract) return alert("Connect your wallet first");
+    if (!contract) return toast.error("Connect your wallet first");
     try {
       const tx = await contract.deleteTask(taskId);
       await tx.wait();
       fetchTasks();
+      toast.success("Task deleted successfully!");
     } catch (error) {
       console.error(error);
+      toast.error("Error deleting task");
     }
   };
 
@@ -55,6 +64,7 @@ export default function TaskDApp() {
       setTasks(myTasks);
     } catch (error) {
       console.error(error);
+      toast.error("Error fetching tasks");
     }
   };
 
@@ -82,6 +92,7 @@ export default function TaskDApp() {
           </div>
         </div>
       )}
+      <ToastContainer />
     </div>
   );
 }
