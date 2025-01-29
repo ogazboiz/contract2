@@ -44,7 +44,7 @@ function App() {
         toast.success("Balance: " + ethers.formatEther(balance));
 
       } catch (error) {
-        toast.error("Failed to retrieve balance: " + error.message);
+        toast.error("Failed to retrieve balance: ");
       }
     } else {
       toast.error("Ethereum wallet is not detected");
@@ -66,7 +66,7 @@ function App() {
         toast.success("Deposit successful!");
         getContractBalance(); // Update balance after deposit
       } catch (error) {
-        toast.error("Deposit failed: " + error.message);
+        toast.error("Deposit failed try again later ");
       }
     } else {
       toast.error("Ethereum wallet is not detected");
@@ -80,12 +80,13 @@ function App() {
         const provider = new ethers.BrowserProvider(window.ethereum);
         const signer = await provider.getSigner();
         const contract = new ethers.Contract(contractAddress, abi, signer);
-        const tx = await contract.withdraw(ethers.parseEther(withdrawAmount));
+        const parsedValue = withdrawAmount.toString();
+        const tx = await contract.withdraw(parsedValue);
         await tx.wait();
         toast.success("Withdrawal successful!");
         getContractBalance(); // Update balance after withdrawal
       } catch (error) {
-        toast.error("Withdrawal failed: " + error.message);
+        toast.error("Withdrawal failed: ");
       }
     } else {
       toast.error("Ethereum wallet is not detected");
@@ -133,21 +134,22 @@ function App() {
           </button>
         </div>
 
-        <div className="mb-6">
-          <input
-            type="number"
-            placeholder="Enter withdrawal amount (NGN)"
-            value={withdrawAmount}
-            onChange={(e) => setWithdrawAmount(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <button
-            onClick={withdrawFunds}
-            className="w-full mt-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition duration-300"
-          >
-            Withdraw
-          </button>
-        </div>
+        {/* Withdraw Amount Section */}
+      <div className="mb-6">
+        <input
+          type="number"
+          placeholder="Enter withdrawal amount (NGN)"
+          value={withdrawAmount}
+          onChange={(e) => setWithdrawAmount(e.target.value)}
+          className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <button
+          onClick={withdrawFunds}
+          className="w-full mt-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition duration-300"
+        >
+          Withdraw
+        </button>
+      </div>
 
         <button
           onClick={getContractBalance}
