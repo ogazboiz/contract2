@@ -1,4 +1,4 @@
-# contract adress = 0x2ef1F2604136C78380a5418b287E1d877595306b
+# contract adress =  0x0f764437ffBE1fcd0d0d276a164610422710B482
 
 # React + Vite
 
