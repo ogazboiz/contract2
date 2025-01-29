@@ -1,171 +1,99 @@
 import { useState, useEffect } from "react";
-import abi from "./abi.json";
 import { ethers } from "ethers";
-import "./App.css";
+// import { toast } from "react-toastify";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { parseEther } from "ethers";
+import ABI from "./abi.json"
+const CONTRACT_ADDRESS = "0x0f764437ffBE1fcd0d0d276a164610422710B482";
 
-function App() {
-  const [depositAmount, setDepositAmount] = useState("");
-  const [withdrawAmount, setWithdrawAmount] = useState("");
-  const [balance, setBalance] = useState("Loading...");
-  const [WalletAddress, setWalletAddress] = useState("")
-  const [isWalletConnected, setIsWalletConnected] = useState(false)
-  const contractAddress = "0x2ef1F2604136C78380a5418b287E1d877595306b";
+toast.configure();
 
-  async function requestAccounts() {
-    await window.ethereum.request({ method: "eth_requestAccounts" });
-  }
+export default function TaskDApp() {
+  const [provider, setProvider] = useState(null);
+  const [signer, setSigner] = useState(null);
+  const [contract, setContract] = useState(null);
+  const [tasks, setTasks] = useState([]);
+  const [taskTitle, setTaskTitle] = useState("");
+  const [taskText, setTaskText] = useState("");
 
-  async function connectAddress() {
-    if(typeof window.ethereum !== "undefined"){
-      
-      try{
-
-        const account = await window.ethereum.request({ method: "eth_requestAccounts"})
-        setWalletAddress(account[0])
-        setIsWalletConnected(true)
-      }
-      catch (error) {
-        toast.error("fail to connect")
-      }
-
-    }
-  }
-
-  async function getContractBalance() {
-    if (typeof window.ethereum !== "undefined") {
-      try {
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const contract = new ethers.Contract(contractAddress, abi, provider);
-        const balance = await contract.getBalance();
-        setBalance(ethers.formatEther(balance) + " ETH");
-        toast.success("Balance: " + ethers.formatEther(balance));
-
-      } catch (error) {
-        toast.error("Failed to retrieve balance: ");
-      }
-    } else {
-      toast.error("Ethereum wallet is not detected");
-    }
-  }
-
-  async function depositFunds() {
-    if (typeof window.ethereum !== "undefined") {
-      await requestAccounts();
-      try {
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
-        const contract = new ethers.Contract(contractAddress, abi, signer);
-
-        const parsedValue = depositAmount.toString();
-        
-        const tx = await contract.deposit(parsedValue);
-        await tx.wait();
-        toast.success("Deposit successful!");
-        getContractBalance(); // Update balance after deposit
-      } catch (error) {
-        toast.error("Deposit failed try again later ");
-      }
-    } else {
-      toast.error("Ethereum wallet is not detected");
-    }
-  }
-
-  async function withdrawFunds() {
-    if (typeof window.ethereum !== "undefined") {
-      await requestAccounts();
-      try {
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
-        const contract = new ethers.Contract(contractAddress, abi, signer);
-        const parsedValue = withdrawAmount.toString();
-        const tx = await contract.withdraw(parsedValue);
-        await tx.wait();
-        toast.success("Withdrawal successful!");
-        getContractBalance(); // Update balance after withdrawal
-      } catch (error) {
-        toast.error("Withdrawal failed: ");
-      }
-    } else {
-      toast.error("Ethereum wallet is not detected");
-    }
-  }
-
-  // Fetch contract balance on component load
   useEffect(() => {
-    getContractBalance();
+    if (window.ethereum) {
+      const web3Provider = new ethers.BrowserProvider(window.ethereum);
+      setProvider(web3Provider);
+    }
   }, []);
 
+  const connectWallet = async () => {
+    if (!provider) return toast.error("Please install MetaMask");
+    try {
+      const web3Signer = await provider.getSigner();
+      setSigner(web3Signer);
+      setContract(new ethers.Contract(CONTRACT_ADDRESS, ABI, web3Signer));
+      toast.success("Wallet connected successfully");
+    } catch (error) {
+      toast.error("Failed to connect wallet");
+    }
+  };
+
+  const addTask = async () => {
+    if (!contract) return toast.error("Connect your wallet first");
+    try {
+      const tx = await contract.addTask(taskText, taskTitle, false);
+      await tx.wait();
+      fetchTasks();
+      toast.success("Task added successfully");
+    } catch (error) {
+      toast.error("Failed to add task");
+    }
+  };
+
+  const deleteTask = async (taskId) => {
+    if (!contract) return toast.error("Connect your wallet first");
+    try {
+      const tx = await contract.deleteTask(taskId);
+      await tx.wait();
+      fetchTasks();
+      toast.success("Task deleted successfully");
+    } catch (error) {
+      toast.error("Failed to delete task");
+    }
+  };
+
+  const fetchTasks = async () => {
+    if (!contract) return;
+    try {
+      const myTasks = await contract.getMyTask();
+      setTasks(myTasks);
+    } catch (error) {
+      toast.error("Failed to load tasks");
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-r from-blue-900 to-indigo-700 flex flex-col justify-center items-center py-8 px-4">
-      <div className="bg-white shadow-2xl rounded-lg p-8 w-full max-w-md text-center">
-        <h1 className="text-3xl font-extrabold text-gray-800 mb-6">Smart Contract Interaction</h1>
-
-        <div className="mb-6">
-  {!isWalletConnected ? (
-    <button
-      onClick={connectAddress}
-      className="w-full mt-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-300"
-    >
-      Connect Wallet
-    </button>
-  ) : (
-    <p className="text-l font-semibold text-gray-700 mt-4">
-      Connected as: {WalletAddress}
-    </p>
-  )}
-</div>
-
-        <div className="mb-6">
-          <input
-            type="number"
-            placeholder="Enter deposit amount (NGN)"
-            value={depositAmount}
-            onChange={(e) => setDepositAmount(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <button
-            onClick={depositFunds}
-            className="w-full mt-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition duration-300"
-          >
-            Deposit
-          </button>
+    <div className="max-w-lg mx-auto p-4">
+      <h1 className="text-2xl font-bold text-center mb-4">Task Manager DApp</h1>
+      {!signer ? (
+        <button onClick={connectWallet} className="w-full bg-blue-500 text-white py-2 px-4 rounded">Connect Wallet</button>
+      ) : (
+        <div>
+          <div className="mb-4">
+            <input className="w-full p-2 border rounded mb-2" placeholder="Task Title" value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} />
+            <input className="w-full p-2 border rounded mb-2" placeholder="Task Description" value={taskText} onChange={(e) => setTaskText(e.target.value)} />
+            <button onClick={addTask} className="w-full bg-green-500 text-white py-2 px-4 rounded">Add Task</button>
+          </div>
+          <button onClick={fetchTasks} className="w-full bg-gray-500 text-white py-2 px-4 rounded mb-4">Load My Tasks</button>
+          <div>
+            {tasks.map((task, index) => (
+              <div key={index} className="p-4 border rounded mb-2">
+                <h2 className="font-semibold">{task.taskTitle}</h2>
+                <p>{task.taskText}</p>
+                <button onClick={() => deleteTask(task.id)} className="bg-red-500 text-white py-1 px-3 rounded mt-2">Delete</button>
+              </div>
+            ))}
+          </div>
         </div>
-
-        {/* Withdraw Amount Section */}
-      <div className="mb-6">
-        <input
-          type="number"
-          placeholder="Enter withdrawal amount (NGN)"
-          value={withdrawAmount}
-          onChange={(e) => setWithdrawAmount(e.target.value)}
-          className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <button
-          onClick={withdrawFunds}
-          className="w-full mt-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition duration-300"
-        >
-          Withdraw
-        </button>
-      </div>
-
-        <button
-          onClick={getContractBalance}
-          className="py-2 px-6 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-300"
-        >
-          Refresh Balance
-        </button>
-
-        <p className="mt-4 text-xl font-semibold text-gray-700">Contract Balance: {balance}</p>
-      </div>
+      )}
       <ToastContainer />
     </div>
   );
 }
-
-export default App;
-
-
-
